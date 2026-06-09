@@ -15,8 +15,8 @@ android {
         applicationId = "com.stancebeam.whackk"
         minSdk = 28
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.1.2"
+        versionCode = 1
+        versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -29,6 +29,7 @@ android {
     }
 
     buildTypes {
+
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -48,7 +49,9 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
+
 
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -74,7 +77,7 @@ android {
         variant.outputs
             .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
             .forEach { output ->
-                val outputFileName = "CC-LANE-${variant.baseName}-${variant.versionName}.apk"
+                val outputFileName = "WHAKK-${variant.baseName}-${variant.versionName}.apk"
                 output.outputFileName = outputFileName
             }
     }
