@@ -725,7 +725,7 @@ fun WebViewContent2(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     val composition by rememberLottieComposition(
-                                        LottieCompositionSpec.Asset("bat_ball.lottie")
+                                        LottieCompositionSpec.Asset("ball.lottie")
                                     )
                                     val progress by animateLottieCompositionAsState(
                                         composition = composition,
