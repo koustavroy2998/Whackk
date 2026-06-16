@@ -97,6 +97,33 @@ class JSBridgeController @Inject constructor() {
         }
     }
 
+    fun handleStartSTT(language: String) {
+        scope.launch {
+            _messageFlow.emit(JSBridgeMessage.StartSTT(language))
+        }
+    }
+
+    fun handleStopSTT() {
+        scope.launch {
+            _messageFlow.emit(JSBridgeMessage.StopSTT)
+        }
+    }
+
+    fun sendSTTResult(transcript: String, isFinal: Boolean) {
+        val json = JSONObject().apply {
+            put("transcript", transcript)
+            put("isFinal", isFinal)
+        }
+        sendToJS("onSTTResult", json.toString())
+    }
+
+    fun sendSTTError(errorCode: String) {
+        val json = JSONObject().apply {
+            put("error", errorCode)
+        }
+        sendToJS("onSTTError", json.toString())
+    }
+
 
 
 

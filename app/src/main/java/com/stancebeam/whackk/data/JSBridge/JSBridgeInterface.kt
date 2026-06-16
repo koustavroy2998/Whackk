@@ -73,4 +73,16 @@ class JSBridgeInterface @Inject constructor(
         Log.d(TAG, "Logout triggered from JS")
         bridgeController.handleLogout()
     }
+
+    @JavascriptInterface
+    fun startSpeechRecognition(language: String = "en-US") {
+        Log.d(TAG, "STT start triggered from JS: $language")
+        bridgeController.handleStartSTT(language)
+    }
+
+    @JavascriptInterface
+    fun stopSpeechRecognition() {
+        Log.d(TAG, "STT stop triggered from JS")
+        bridgeController.handleStopSTT()
+    }
 }

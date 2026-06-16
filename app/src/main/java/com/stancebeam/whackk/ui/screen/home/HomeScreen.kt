@@ -181,6 +181,18 @@ fun WebViewContent2(
         Log.d("WebViewContent2", "📂 Folder selected: $uri")
     }
 
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        viewModel.onMicPermissionResult(granted)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.requestMicPermission.collect {
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
     // Content Ready JavaScript Interface
     val contentReadyInterface = remember {
         object {

@@ -2,6 +2,7 @@ package com.stancebeam.cc_lane.ui.screen.home
 
 import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -19,6 +20,7 @@ import androidx.lifecycle.viewModelScope
 import com.stancebeam.cc_lane.data.JSBridge.JSBridgeController
 import com.stancebeam.cc_lane.data.JSBridge.JSBridgeInterface
 import com.stancebeam.cc_lane.data.JSBridge.JSBridgeMessage
+import com.stancebeam.cc_lane.data.stt.STTManager
 import com.stancebeam.cc_lane.data.analytics.AnalyticsEngine
 import com.stancebeam.cc_lane.data.analytics.DataConversion
 import com.stancebeam.cc_lane.data.bluetooth.BluetoothController
@@ -59,8 +61,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
@@ -85,8 +90,9 @@ class HomeViewModel @Inject constructor(
     private val sessionController: SessionController,
     private val sessionRepository: SessionRepository,
     connectionRepository: ConnectionController,
-    private val jsBridgeController: JSBridgeController, // Inject JS Bridge Controller
-    private  val jsBridgeInterface: JSBridgeInterface,
+    private val jsBridgeController: JSBridgeController,
+    private val jsBridgeInterface: JSBridgeInterface,
+    private val sttManager: STTManager,
     @ApplicationContext private val context: Context,
     private val bleSensorRepository: BleSensorRepository
 ) : ViewModel() {
@@ -111,6 +117,10 @@ class HomeViewModel @Inject constructor(
 
     private val TAG = "HomeViewModel"
     private val prefs = context.getSharedPreferences("lane_prefs", Context.MODE_PRIVATE)
+
+    private val _requestMicPermission = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val requestMicPermission: SharedFlow<Unit> = _requestMicPermission.asSharedFlow()
+    private var pendingSTTLanguage: String? = null
 
     private var ballReleased by mutableStateOf(false)
     private var firstSwingAfterReleaseProcessed by mutableStateOf(false)
@@ -308,16 +318,37 @@ class HomeViewModel @Inject constructor(
             is JSBridgeMessage.SensorName -> {
                 updateSensorName(macAddress = message.macId, newName = message.name)
             }
-            is JSBridgeMessage.Logout ->{
+            is JSBridgeMessage.Logout -> {
                 sessionController.release()
-                 bluetoothController.disconnectAllDevices()
+                bluetoothController.disconnectAllDevices()
                 sessionStarted = false
+            }
+            is JSBridgeMessage.StartSTT -> {
+                val granted = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
+                        PackageManager.PERMISSION_GRANTED
+                if (granted) {
+                    sttManager.startListening(message.language)
+                } else {
+                    pendingSTTLanguage = message.language
+                    _requestMicPermission.tryEmit(Unit)
+                }
+            }
+            is JSBridgeMessage.StopSTT -> {
+                sttManager.stopListening()
             }
             is JSBridgeMessage.Unknown -> {
                 Log.w(TAG, "Unknown message: ${message.rawMessage}")
             }
-
         }
+    }
+
+    fun onMicPermissionResult(granted: Boolean) {
+        if (granted) {
+            pendingSTTLanguage?.let { sttManager.startListening(it) }
+        } else {
+            jsBridgeController.sendSTTError("PERMISSION_DENIED")
+        }
+        pendingSTTLanguage = null
     }
 
     // New method to handle ball release
